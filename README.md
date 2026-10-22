@@ -48,7 +48,10 @@ GET http://127.0.0.1:8000/api/articulo/
 
 ## SQL Server
 
-Para usar SQL Server con Django, instala SQL Server Developer o SQL Server Express y el controlador ODBC 18 para SQL Server. Luego crea la base de datos y configura estas variables de entorno antes de iniciar Django:
+Para usar SQL Server con Django, instala SQL Server Developer o SQL Server Express y el controlador ODBC 18 para SQL Server. Luego crea la base de datos y configura estas variables de entorno antes de iniciar Django en la carpeta de setting.py:
+
+## Instalación Driver
+pip install mssql-django pyodbc
 
 ```powershell
 $env:DATABASE_ENGINE = "mssql"
@@ -72,7 +75,7 @@ GO
 Luego, para generar y aplicar las migraciones sobre SQL Server:
 
 ```powershell
-python -m django makemigrations stockmaster
+python -m django makemigrations
 python -m django migrate
 python -m django runserver
 ```
@@ -80,10 +83,6 @@ python -m django runserver
 Asegúrate de que el servidor SQL acepte conexiones TCP/IP y que el puerto `1433` esté habilitado. No guardes contraseñas ni claves en el repositorio. Para despliegues, define también `DJANGO_SECRET_KEY`, `DJANGO_DEBUG=false` y `DJANGO_ALLOWED_HOSTS` con los hosts autorizados.
 
 ## Pruebas
-
-```powershell
-python -m django test stockmaster
-```
 
 El estado actual del proyecto tiene 6 pruebas fallidas de 11: las pruebas de ventas esperan cálculo automático de subtotales/totales y creación de detalles anidados que todavía no están implementados correctamente.
 
