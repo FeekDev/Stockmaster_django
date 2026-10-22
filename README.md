@@ -14,7 +14,7 @@ Desde la raíz del repositorio, crea y activa un entorno virtual:
 
 ```powershell
 py -m venv .venv
-.\.venv\Scripts\Activate.ps1
+\.\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
 $env:DJANGO_SETTINGS_MODULE = "config.settings"
 ```
@@ -48,19 +48,36 @@ GET http://127.0.0.1:8000/api/articulo/
 
 ## SQL Server
 
-Para usar SQL Server, instala el controlador ODBC 18 y configura estas variables de entorno antes de iniciar Django:
+Para usar SQL Server con Django, instala SQL Server Developer o SQL Server Express y el controlador ODBC 18 para SQL Server. Luego crea la base de datos y configura estas variables de entorno antes de iniciar Django:
 
-| Variable | Ejemplo |
-|---|---|
-| `DATABASE_ENGINE` | `mssql` |
-| `DATABASE_NAME` | `StockMaster_BD` |
-| `DATABASE_USER` | usuario de la base de datos |
-| `DATABASE_PASSWORD` | contraseña local |
-| `DATABASE_HOST` | `127.0.0.1` |
-| `DATABASE_PORT` | `1433` |
-| `DATABASE_DRIVER` | `ODBC Driver 18 for SQL Server` |
+```powershell
+$env:DATABASE_ENGINE = "mssql"
+$env:DATABASE_NAME = "StockMaster_BD"
+$env:DATABASE_USER = "sa"
+$env:DATABASE_PASSWORD = "TuPasswordSegura"
+$env:DATABASE_HOST = "127.0.0.1"
+$env:DATABASE_PORT = "1433"
+$env:DATABASE_DRIVER = "ODBC Driver 18 for SQL Server"
+$env:DATABASE_EXTRA_PARAMS = "TrustServerCertificate=yes;"
+$env:DJANGO_SETTINGS_MODULE = "config.settings"
+```
 
-No guardes contraseñas ni claves en el repositorio. Para despliegues, define también `DJANGO_SECRET_KEY`, `DJANGO_DEBUG=false` y `DJANGO_ALLOWED_HOSTS` con los hosts autorizados.
+Si aún no existe la base de datos, créala en SQL Server:
+
+```sql
+CREATE DATABASE StockMaster_BD;
+GO
+```
+
+Luego, para generar y aplicar las migraciones sobre SQL Server:
+
+```powershell
+python -m django makemigrations stockmaster
+python -m django migrate
+python -m django runserver
+```
+
+Asegúrate de que el servidor SQL acepte conexiones TCP/IP y que el puerto `1433` esté habilitado. No guardes contraseñas ni claves en el repositorio. Para despliegues, define también `DJANGO_SECRET_KEY`, `DJANGO_DEBUG=false` y `DJANGO_ALLOWED_HOSTS` con los hosts autorizados.
 
 ## Pruebas
 
@@ -68,7 +85,7 @@ No guardes contraseñas ni claves en el repositorio. Para despliegues, define ta
 python -m django test stockmaster
 ```
 
-El estado actual del proyecto tiene 6 pruebas fallidas de 11: las pruebas de ventas esperan cálculo automático de subtotales/totales y creación de detalles anidados que todavía no están implementados.
+El estado actual del proyecto tiene 6 pruebas fallidas de 11: las pruebas de ventas esperan cálculo automático de subtotales/totales y creación de detalles anidados que todavía no están implementados correctamente.
 
 ## Estructura
 
