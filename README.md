@@ -84,7 +84,7 @@ Asegúrate de que el servidor SQL acepte conexiones TCP/IP y que el puerto `1433
 
 ## Pruebas
 
-El estado actual del proyecto tiene 6 pruebas fallidas de 11: las pruebas de ventas esperan cálculo automático de subtotales/totales y creación de detalles anidados que todavía no están implementados correctamente.
+El proyecto cuenta con una suite de 11 pruebas unitarias que se ejecutan exitosamente. La lógica de ventas incluye el cálculo automático de subtotales y totales en la base de datos, además de la creación de detalles de factura anidados que funcionan correctamente.
 
 ## Estructura
 
