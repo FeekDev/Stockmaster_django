@@ -39,7 +39,8 @@ class VentaSerializer(serializers.ModelSerializer):
         write_only=True,
     )
     detalles = DetalleVentaInputSerializer(many=True, required=False, write_only=True)
-    total = serializers.DecimalField(max_digits=12, decimal_places=2, write_only=True)
+    total = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+
     class Meta:
         model = Venta
         fields = '__all__'
@@ -48,6 +49,15 @@ class VentaSerializer(serializers.ModelSerializer):
     def _guardar_detalles(venta, detalles_data):
         for detalle_data in detalles_data:
             DetalleFactura.objects.create(venta=venta, **detalle_data)
+            
+    
+    def create(self, validated_data):
+        detalles_data = validated_data.pop('detalles', [])
+        with transaction.atomic():
+            venta = Venta.objects.create(**validated_data)
+            self._guardar_detalles(venta, detalles_data)
+            venta.calcularTotal()
+        return venta
 
 
 class DetalleFacturaSerializer(serializers.ModelSerializer):

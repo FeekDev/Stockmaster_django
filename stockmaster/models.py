@@ -108,10 +108,20 @@ class Venta(models.Model):
         ],
     )
     total = models.DecimalField(
-            max_digits=12,
-            decimal_places=2,
-            default=Decimal("0.00"),
-        )
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
+
+    def calcularTotal(self):
+        subtotal = self.detalles.aggregate(total=Sum('subtotal'))['total'] or Decimal('0.00')
+        self.total = subtotal * (Decimal('1') - (self.descuento / Decimal('100')))
+        super().save(update_fields=['total'])
+        return self.total
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        self.calcularTotal()
 
 class DetalleFactura(models.Model):
     id_detalle = models.AutoField(primary_key=True)
@@ -136,3 +146,16 @@ class DetalleFactura(models.Model):
         decimal_places=2,
         default=Decimal("0.00"),
     )
+
+    def calcularSubtotal(self):
+        self.subtotal = self.cantidad * self.precio_unitario
+
+    def save(self, *args, **kwargs):
+        self.calcularSubtotal()
+        super().save(*args, **kwargs)
+        self.venta.calcularTotal()
+
+    def delete(self, *args, **kwargs):
+        venta = self.venta
+        super().delete(*args, **kwargs)
+        venta.calcularTotal()
