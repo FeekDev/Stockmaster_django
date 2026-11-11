@@ -23,6 +23,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "stockmaster",
+    "ia",
     "rest_framework_swagger",
 ]
 
