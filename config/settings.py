@@ -1,7 +1,4 @@
 import os
-from pathlib import Path
-
-BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get(
     "DJANGO_SECRET_KEY",
@@ -56,29 +53,23 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
-database_engine = os.environ.get(
-    "DATABASE_ENGINE",
-    "django.db.backends.sqlite3",
-)
 DATABASES = {
     "default": {
-        "ENGINE": database_engine,
-        "NAME": os.environ.get("DATABASE_NAME", str(BASE_DIR / "db.sqlite3")),
-        "USER": os.environ.get("DATABASE_USER", ""),
-        "PASSWORD": os.environ.get("DATABASE_PASSWORD", ""),
-        "HOST": os.environ.get("DATABASE_HOST", ""),
-        "PORT": os.environ.get("DATABASE_PORT", ""),
+        "ENGINE": "mssql",
+        "NAME": os.environ.get("DATABASE_NAME", "StockMaster_BD"),
+        "USER": os.environ.get("DATABASE_USER", "sa"),
+        "PASSWORD": os.environ.get("DATABASE_PASSWORD", "p_ssW0rd"),
+        "HOST": os.environ.get("DATABASE_HOST", "127.0.0.1"),
+        "PORT": os.environ.get("DATABASE_PORT", "1433"),
+        "OPTIONS": {
+            "driver": os.environ.get("DATABASE_DRIVER", "ODBC Driver 18 for SQL Server"),
+            "extra_params": os.environ.get(
+                "DATABASE_EXTRA_PARAMS",
+                "TrustServerCertificate=yes;",
+            ),
+        },
     }
 }
-
-if database_engine == "mssql":
-    DATABASES["default"]["OPTIONS"] = {
-        "driver": os.environ.get("DATABASE_DRIVER", "ODBC Driver 18 for SQL Server"),
-        "extra_params": os.environ.get(
-            "DATABASE_EXTRA_PARAMS",
-            "TrustServerCertificate=yes;",
-        ),
-    }
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -108,4 +99,20 @@ MAILERS = {
     "default": {
         "BACKEND": "django.core.mail.backends.console.EmailBackend",
     },
+}
+
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
+}
+
+OLLAMA_CONFIG = {
+    "BASE_URL": os.environ.get("OLLAMA_BASE_URL", "http://127.0.0.1:11434"),
+    "MODEL": os.environ.get("OLLAMA_MODEL", "llama3.2:3b"),
+    "TIMEOUT": int(os.environ.get("OLLAMA_TIMEOUT", "120")),
 }

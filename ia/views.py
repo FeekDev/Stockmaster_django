@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
 
 from .models import Conversacion, Mensaje
+from stockmaster.models import Persona
 from .serializers import (
     PreguntaSerializer,
     MensajeSerializer,
@@ -25,15 +26,20 @@ class ConversacionViewSet(viewsets.ModelViewSet):
         # Cada usuario solamente consulta sus conversaciones.
         return (
             Conversacion.objects
-            .filter(usuario=self.request.user)
+            .filter(persona__usuario=self.request.user.get_username())
             .prefetch_related("mensajes")
-            .order_by("-fecha_actualizacion")
+            .order_by("-fecha_creacion")
         )
 
     def perform_create(self, serializer):
-        serializer.save(
-            usuario=self.request.user
-        )
+        persona = Persona.objects.filter(
+            usuario=self.request.user.get_username()
+        ).first()
+        if persona is None:
+            raise ValidationError(
+                "No existe una persona asociada al nombre de usuario autenticado."
+            )
+        serializer.save(persona=persona)
 
     @action(
         detail=True,
@@ -84,27 +90,19 @@ class ConversacionViewSet(viewsets.ModelViewSet):
 
                 Mensaje.objects.create(
                     conversacion=conversacion,
-                    rol="USUARIO",
+                    rol="user",
                     contenido=pregunta,
                 )
 
                 mensaje_asistente = Mensaje.objects.create(
                     conversacion=conversacion,
-                    rol="ASISTENTE",
+                    rol="assistant",
                     contenido=respuesta,
                 )
 
-                # Actualizar el título en el primer mensaje.
-                if conversacion.titulo == "Nueva conversación":
-                    conversacion.titulo = pregunta[:150]
-                conversacion.fecha_actualizacion = timezone.now()
-
-                conversacion.save(
-                    update_fields=[
-                        "titulo",
-                        "fecha_actualizacion",
-                    ]
-                )
+                if conversacion.mensaje == "Nueva conversación":
+                    conversacion.mensaje = pregunta[:1000]
+                    conversacion.save(update_fields=["mensaje"])
 
             return Response(
                 {

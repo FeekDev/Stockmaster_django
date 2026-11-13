@@ -1,7 +1,9 @@
 from decimal import Decimal
+from django.contrib.auth import get_user_model
 from django.test import SimpleTestCase
 from django.db import models
 from unittest.mock import Mock, PropertyMock, patch
+from rest_framework.test import APITestCase
 
 from .models import Articulo, DetalleFactura, Persona, TipoPersona, Venta
 from .serializers import (
@@ -191,3 +193,62 @@ class DetalleFacturaSerializerTests(SimpleTestCase):
         from django.urls import reverse
 
         self.assertEqual(reverse('detallefactura-list'), '/api/detalle-factura/')
+
+
+class JwtAuthenticationTests(APITestCase):
+    def test_all_stockmaster_list_endpoints_are_available_with_authentication(self):
+        user = get_user_model().objects.create_user(username="stockmaster-user")
+        self.client.force_authenticate(user=user)
+
+        for endpoint in (
+            "/api/tipo-persona/",
+            "/api/persona/",
+            "/api/venta/",
+            "/api/detalle-factura/",
+            "/api/articulo/",
+            "/api/categoria/",
+        ):
+            with self.subTest(endpoint=endpoint):
+                self.assertEqual(self.client.get(endpoint).status_code, 200)
+
+    def test_browsable_api_session_login_is_available(self):
+        get_user_model().objects.create_user(
+            username="browser-user",
+            password="test-password-123",
+        )
+
+        from django.urls import reverse
+
+        self.assertEqual(reverse("rest_framework:login"), "/api-auth/login/")
+        self.client.login(username="browser-user", password="test-password-123")
+        self.assertEqual(self.client.get("/api/articulo/").status_code, 200)
+
+    def test_api_requires_access_token_and_refresh_endpoint_works(self):
+        get_user_model().objects.create_user(
+            username="jwt-user",
+            password="test-password-123",
+        )
+
+        protected_response = self.client.get("/api/articulo/")
+        self.assertEqual(protected_response.status_code, 401)
+
+        token_response = self.client.post(
+            "/api/token/",
+            {"username": "jwt-user", "password": "test-password-123"},
+            format="json",
+        )
+        self.assertEqual(token_response.status_code, 200)
+        tokens = token_response.json()
+        self.assertIn("access", tokens)
+        self.assertIn("refresh", tokens)
+
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {tokens['access']}")
+        self.assertEqual(self.client.get("/api/articulo/").status_code, 200)
+
+        refresh_response = self.client.post(
+            "/api/token/refresh/",
+            {"refresh": tokens["refresh"]},
+            format="json",
+        )
+        self.assertEqual(refresh_response.status_code, 200)
+        self.assertIn("access", refresh_response.json())
