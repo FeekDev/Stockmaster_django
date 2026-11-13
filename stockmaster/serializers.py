@@ -48,6 +48,15 @@ class VentaSerializer(serializers.ModelSerializer):
     def _guardar_detalles(venta, detalles_data):
         for detalle_data in detalles_data:
             DetalleFactura.objects.create(venta=venta, **detalle_data)
+            
+    
+    def create(self, validated_data):
+        detalles_data = validated_data.pop('detalles', [])
+        with transaction.atomic():
+            venta = Venta.objects.create(**validated_data)
+            self._guardar_detalles(venta, detalles_data)
+            venta.calcularTotal()
+        return venta
 
     def create(self, validated_data):
         detalles_data = validated_data.pop('detalles', [])

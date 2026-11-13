@@ -14,7 +14,7 @@ Desde la raíz del repositorio, crea y activa un entorno virtual:
 
 ```powershell
 py -m venv .venv
-.\.venv\Scripts\Activate.ps1
+\.\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
 $env:DJANGO_SETTINGS_MODULE = "config.settings"
 ```
@@ -109,10 +109,11 @@ Si no coinciden, el usuario podrá autenticarse, pero no podrá crear conversaci
 
 ## SQL Server
 
-Instala el controlador ODBC 18 y configura estas variables de entorno antes de ejecutar cualquier comando de Django. `DATABASE_NAME` es opcional y por defecto usa `StockMaster_BD`; no hay conexión alternativa a SQLite.
+Para usar SQL Server, instala el controlador ODBC 18 y configura estas variables de entorno antes de iniciar Django:
 
 | Variable | Ejemplo |
 |---|---|
+| `DATABASE_ENGINE` | `mssql` |
 | `DATABASE_NAME` | `StockMaster_BD` |
 | `DATABASE_USER` | usuario de la base de datos |
 | `DATABASE_PASSWORD` | contraseña local |
@@ -125,14 +126,16 @@ No guardes contraseñas ni claves en el repositorio. Para despliegues, define ta
 ## Pruebas
 
 ```powershell
-python -m django test stockmaster
+python -m django makemigrations
+python -m django migrate
+python -m django runserver
 ```
 
-Ejecuta las pruebas de Stockmaster e IA con:
+Asegúrate de que el servidor SQL acepte conexiones TCP/IP y que el puerto `1433` esté habilitado. No guardes contraseñas ni claves en el repositorio. Para despliegues, define también `DJANGO_SECRET_KEY`, `DJANGO_DEBUG=false` y `DJANGO_ALLOWED_HOSTS` con los hosts autorizados.
 
-```powershell
-python -m django test stockmaster ia
-```
+## Pruebas
+
+El estado actual del proyecto tiene 6 pruebas fallidas de 11: las pruebas de ventas esperan cálculo automático de subtotales/totales y creación de detalles anidados que todavía no están implementados.
 
 ## Estructura
 

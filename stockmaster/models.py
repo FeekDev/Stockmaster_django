@@ -108,10 +108,20 @@ class Venta(models.Model):
         ],
     )
     total = models.DecimalField(
-            max_digits=12,
-            decimal_places=2,
-            default=Decimal("0.00"),
-        )
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
+
+    def calcularTotal(self):
+        subtotal = self.detalles.aggregate(total=Sum('subtotal'))['total'] or Decimal('0.00')
+        self.total = subtotal * (Decimal('1') - (self.descuento / Decimal('100')))
+        super().save(update_fields=['total'])
+        return self.total
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        self.calcularTotal()
 
     def calcularTotal(self):
         subtotal = self.detalles.aggregate(total=Sum("subtotal"))["total"]
