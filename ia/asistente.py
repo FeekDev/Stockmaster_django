@@ -9,30 +9,26 @@ class AsistenteIA:
 
     @staticmethod
     def obtener_articulos():
-        articulos = Articulo.objects.annotate(
-           cantidad_ventas=Count('detalleventa', filter=Q(detalleventa__estado='completado'))
-        ).order_by('-cantidad_ventas')[:5]
-
-        articulos=[]
-
-        for articulo in articulos:
-            articulos.append({
-                'nombre': articulo.nombre,
-                'descripcion': articulo.descripcion,
-                'precio': str(articulo.precio),
-                'cantidad_ventas': articulo.cantidad_ventas
-            })
-        return articulos
+        return [
+            {
+                "codigo": articulo.codigo,
+                "nombre": articulo.nombre,
+                "precio": str(articulo.precio),
+                "stock": articulo.stock,
+                "categoria": articulo.categoria.nombre,
+            }
+            for articulo in Articulo.objects.select_related("categoria")
+        ]
 
     @staticmethod
-    def generar_respuesta(pregunta, articulos):
-        articulos = AsistenteIA.obtener_articulos()
+    def responder_pregunta(pregunta, historial):
+        contexto = json.dumps(
+            AsistenteIA.obtener_articulos(),
+            ensure_ascii=False,
+            indent=4,
+        )
 
-        contexto = json.dumps(articulos, 
-                              ensure_ascii=False,
-                              indent=4)
-
-        system_prompt = """ 
+        system_prompt = """
         Eres un asistente de ventas para un gestor de inventario.
 
         Tu tarea es responder a las preguntas de los usuarios sobre los productos disponibles en el inventario.
@@ -54,7 +50,7 @@ class AsistenteIA:
 
         mensajes = [
             {
-                        "role": "system",
+            "role": "system",
                 "content": (
                     system_prompt
                     + "\n\nCATÁLOGO ACTUAL:\n"
@@ -64,32 +60,20 @@ class AsistenteIA:
 
         ]
 
-        #Incoporando el historial de la conversación en los mensajes
-        if historial := settings.HISTORIAL_CONVERSACION:
-            for mensaje in historial:
-                role = (
-                    "assistant"
-                    if mensaje["rol"] == "ASISTENTE"
-                    else "user"
-                )
-                mensaje.append({
-                    "role": role,
-                    "content": mensaje["contenido"],
-                })
+        for mensaje in historial:
+            role = "assistant" if mensaje["rol"] in ("assistant", "ASISTENTE") else "user"
+            mensajes.append({"role": role, "content": mensaje["contenido"]})
 
-        #Agregar la pregunta actual
         mensajes.append({
             "role": "user",
             "content": pregunta,
         })
 
-        url = (
-            settings.OLLAMA_CONFIG["BASE_URL"].rstrip("/")
-            + "/api/chat"
-        )
+        ollama_config = settings.OLLAMA_CONFIG
+        url = ollama_config["BASE_URL"].rstrip("/") + "/api/chat"
 
         payload = {
-            "model": settings.OLLAMA_CONFIG["MODEL"],
+            "model": ollama_config["MODEL"],
             "messages": mensajes,
             "stream": False,
             "options": {
@@ -101,14 +85,14 @@ class AsistenteIA:
             response = requests.post(
                 url,
                 json=payload,
-                timeout=settings.OLLAMA_CONFIG["TIMEOUT"],
+                timeout=ollama_config["TIMEOUT"],
             )
             response.raise_for_status()
             resultado = response.json()
 
             return {
                 "respuesta": resultado["message"]["content"],
-                "modelo": resultado.get("model")
+                "modelo": resultado.get("model", ollama_config["MODEL"]),
             }
 
         except requests.ConnectionError:

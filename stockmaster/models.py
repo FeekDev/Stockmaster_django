@@ -113,6 +113,18 @@ class Venta(models.Model):
             default=Decimal("0.00"),
         )
 
+    def calcularTotal(self):
+        subtotal = self.detalles.aggregate(total=Sum("subtotal"))["total"]
+        subtotal = subtotal or Decimal("0.00")
+        self.total = subtotal * (Decimal("100.00") - self.descuento) / Decimal("100.00")
+        if self.pk:
+            super().save(update_fields=["total"])
+        return self.total
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        self.calcularTotal()
+
 class DetalleFactura(models.Model):
     id_detalle = models.AutoField(primary_key=True)
     venta = models.ForeignKey(
@@ -136,3 +148,18 @@ class DetalleFactura(models.Model):
         decimal_places=2,
         default=Decimal("0.00"),
     )
+
+    def calcularSubtotal(self):
+        self.subtotal = self.precio_unitario * self.cantidad
+        return self.subtotal
+
+    def save(self, *args, **kwargs):
+        self.calcularSubtotal()
+        super().save(*args, **kwargs)
+        self.venta.calcularTotal()
+
+    def delete(self, *args, **kwargs):
+        venta = self.venta
+        result = super().delete(*args, **kwargs)
+        venta.calcularTotal()
+        return result
