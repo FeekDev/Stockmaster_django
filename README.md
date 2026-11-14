@@ -7,6 +7,9 @@ API REST para gestionar el inventario y las ventas de Stockmaster. El proyecto u
 - Python 3.12 o superior
 - `pip`
 - SQLite (incluido con Python) para desarrollo, o SQL Server con el controlador ODBC 18 para SQL Server
+- SQL Server con el controlador ODBC 18 para SQL Server
+- Instalar Ollama (llama3.2:3b)
+
 
 ## Instalación local
 
