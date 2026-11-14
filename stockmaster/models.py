@@ -123,6 +123,18 @@ class Venta(models.Model):
         super().save(*args, **kwargs)
         self.calcularTotal()
 
+    def calcularTotal(self):
+        subtotal = self.detalles.aggregate(total=Sum("subtotal"))["total"]
+        subtotal = subtotal or Decimal("0.00")
+        self.total = subtotal * (Decimal("100.00") - self.descuento) / Decimal("100.00")
+        if self.pk:
+            super().save(update_fields=["total"])
+        return self.total
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        self.calcularTotal()
+
 class DetalleFactura(models.Model):
     id_detalle = models.AutoField(primary_key=True)
     venta = models.ForeignKey(
@@ -148,7 +160,8 @@ class DetalleFactura(models.Model):
     )
 
     def calcularSubtotal(self):
-        self.subtotal = self.cantidad * self.precio_unitario
+        self.subtotal = self.precio_unitario * self.cantidad
+        return self.subtotal
 
     def save(self, *args, **kwargs):
         self.calcularSubtotal()
@@ -157,5 +170,6 @@ class DetalleFactura(models.Model):
 
     def delete(self, *args, **kwargs):
         venta = self.venta
-        super().delete(*args, **kwargs)
+        result = super().delete(*args, **kwargs)
         venta.calcularTotal()
+        return result
